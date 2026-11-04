@@ -141,7 +141,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
   </div>
   <div id="syncBox" class="sync">
     <h3>発表パワポのノートを読み込む</h3>
-    <div class="row" id="passRow"><input id="pass" type="password" autocomplete="off" placeholder="合言葉" aria-label="合言葉"><button id="unlock" class="primary" type="button">読み込む</button></div>
+    <div class="row" id="passRow"><input id="pass" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="合言葉（ひらがな）" aria-label="合言葉"><button id="unlock" class="primary" type="button">読み込む</button></div>
     <div id="syncSt" class="st">合言葉を入れると、パワポのノート欄がスライドごとに表示されます。</div>
     <button id="syncNow" class="ghost" type="button" hidden>いますぐ最新を確認</button>
   </div>
@@ -414,7 +414,7 @@ async function syncNow(loud){
   } finally { syncing = false; }
 }
 $('unlock').onclick = () => {
-  const v = $('pass').value.trim(); if (!v){ toast('合言葉を入れてください'); return; }
+  const v = $('pass').value.normalize('NFKC').trim().replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)); if (!v){ toast('合言葉を入れてください'); return; }
   store.set('pass', v); $('pass').value = ''; mode = 'pptx'; store.set('mode', 'pptx'); paintMode(); syncNow(true);
 };
 $('pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('unlock').click(); });
