@@ -24,7 +24,7 @@ for k, paras in plan.items():
     inner = clicks[k - 1].find('p:cTn/p:childTnLst/p:par/p:cTn/p:childTnLst', NS)
     for pi in paras:
         a, b = next_id, next_id + 1; next_id += 2
-        inner.append(etree.fromstring(f'''<p:par xmlns:p="{P}" xmlns:a="{A}"><p:cTn id="{a}" presetID="3" presetClass="emph" presetSubtype="2" grpId="{grp}" nodeType="withEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>
+        inner.append(etree.fromstring(f'''<p:par xmlns:p="{P}" xmlns:a="{A}"><p:cTn id="{a}" presetID="3" presetClass="emph" presetSubtype="2" fill="hold" grpId="{grp}" nodeType="withEffect"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>
 <p:animClr clrSpc="rgb" dir="cw"><p:cBhvr override="childStyle"><p:cTn id="{b}" dur="300" fill="hold"/><p:tgtEl><p:spTgt spid="{spid}"><p:txEl><p:pRg st="{pi}" end="{pi}"/></p:txEl></p:spTgt></p:tgtEl><p:attrNameLst><p:attrName>style.color</p:attrName></p:attrNameLst></p:cBhvr><p:to><a:srgbClr val="{color}"/></p:to></p:animClr>
 </p:childTnLst></p:cTn></p:par>'''))
 timing = root.find('p:timing', NS)
