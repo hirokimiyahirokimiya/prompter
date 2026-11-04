@@ -234,16 +234,33 @@ function update(forceScroll){
     const cut = pos <= s.na ? s.a : pos >= s.nb ? s.b : nmap[pos-1] + 1;
     el.innerHTML = '<span class="r">' + esc(orig.slice(s.a, cut)) + '</span><span class="caret"></span>' + esc(orig.slice(cut, s.b));
     el.dataset.split = '1';
-    if (ci !== lastCur || forceScroll) scrollTo(el);
+    if (forceScroll) holdUntil = 0;
+    scrollTo(el);
   }
   lastCur = ci;
 }
 const stage = $('stage');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Follow the reading caret line by line with an eased glide instead of jumping by sentence.
+let scrollTarget = null, holdUntil = 0;
 function scrollTo(el){
-  const target = el.offsetTop - stage.clientHeight * 0.3 + 4;
-  stage.scrollTo({top: Math.max(0, target), behavior: reduce ? 'auto' : 'smooth'});
+  const c = el.querySelector('.caret') || el;
+  scrollTarget = Math.max(0, c.offsetTop - stage.clientHeight * 0.3 + 4);
 }
+function glide(){
+  if (scrollTarget !== null && performance.now() > holdUntil){
+    const cur = stage.scrollTop, d = scrollTarget - cur;
+    if (Math.abs(d) >= 1){
+      const k = reduce ? 0.25 : 0.07;                       // ~0.6 s to settle one line
+      const step = Math.sign(d) * Math.min(Math.max(Math.abs(d) * k, 1), 26);
+      stage.scrollTop = cur + step;
+    }
+  }
+  requestAnimationFrame(glide);
+}
+requestAnimationFrame(glide);
+// if the speaker scrolls by hand, pause following for a moment
+['touchstart', 'wheel'].forEach(t => stage.addEventListener(t, () => { holdUntil = performance.now() + 2500; }, {passive: true}));
 
 // ---------- matching ----------
 // Global alignment by bigram voting: every heard bigram votes for where the
