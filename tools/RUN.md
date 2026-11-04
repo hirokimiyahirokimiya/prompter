@@ -20,7 +20,7 @@
    → JSON レポート（applied / already / conflicts / out）。新しい版（out）はフォルダに直接できる。古い版は動かさない・消さない。
 3. `out` があれば device_list_dir でその新ファイルの mtimeMs を取り、これを以降の「対象のパワポ」とする。
    右下の番号「n/N」を入れ直すときも同様に Mac 側で `python3 tools/add_slide_numbers.py <入力> <出力>`。
-4. edits.enc.json を作り直す: 中身は `{"edits":[conflicts に入ったスライドの元の編集だけ], "conflicts":[レポートの conflicts], "applied":[applied+already]}` を /tmp/left.json に書き、`node tools/box.mjs close /tmp/left.json edits.enc.json`。
+4. edits.enc.json を作り直す: 中身は `{"edits":[conflicts に入ったスライドの元の編集だけ], "conflicts":[レポートの conflicts], "applied":[applied+already のスライドについて、元の編集の {"n": 番号, "at": 編集の at} ]}`（スマホは n と at が一致した修正を「反映済み」として消す） を /tmp/left.json に書き、`node tools/box.mjs close /tmp/left.json edits.enc.json`。
 5. 手順3へ（新しい版から原稿を作る）。
 
 ## 3. 原稿の更新

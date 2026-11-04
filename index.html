@@ -497,6 +497,12 @@ async function checkConflicts(){
     const res = await fetch('edits.enc.json?t=' + Date.now(), {cache: 'no-store'});
     if (!res.ok) return;
     const data = await openSealed(await res.json(), pass);
+    // edits the Mac already wrote into the deck (matched by slide and edit time) are done, even if reworded there
+    let done = 0;
+    for (const a of (data.applied || [])){
+      if (a && typeof a === 'object' && edits[a.n] && edits[a.n].at === a.at){ delete edits[a.n]; done++; }
+    }
+    if (done){ store.set('edits', JSON.stringify(edits)); store.set('editsDirty', ''); build(); toast(`スマホで直した${done}枚がパワポに反映されました`); }
     const list = (data.conflicts || []).filter(c => edits[c.n]);
     const before = store.get('conflicts', '[]');
     store.set('conflicts', JSON.stringify(list));
