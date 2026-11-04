@@ -66,6 +66,10 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 .seg{display:flex;gap:6px}
 .seg button{flex:1;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;font-size:14px}
 .seg button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+.pend{font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:99px;padding:1px 7px;white-space:nowrap}
+.slide.edited{box-shadow:inset 3px 0 0 var(--accent)}
+.sheet .big{flex:1;min-height:45vh;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:19px;line-height:1.7;resize:vertical;font-weight:700}
+.warn{color:var(--warn);font-size:13px;line-height:1.6;margin:0}
 .more{position:absolute;left:0;right:0;bottom:0;height:36px;pointer-events:none;
   background:linear-gradient(to bottom,transparent,var(--bg));display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:12px;color:var(--dim)}
 .edge{position:absolute;top:50%;transform:translateY(-50%);font-size:13px;color:var(--faint);pointer-events:none}
@@ -113,8 +117,10 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 <div class="app">
   <header class="top">
     <button id="count" class="count" type="button" aria-label="スライド一覧を開く"><span id="cur">1</span><small>/ <span id="tot">1</span></small><span class="chev">▼</span></button>
+    <span id="pend" class="pend" hidden></span>
     <button id="timer" class="timer paused" type="button" aria-label="タイマーの開始と一時停止">7:00</button>
-    <button id="openSet" class="gear" type="button">原稿・設定</button>
+    <button id="edit" class="gear" type="button" hidden>直す</button>
+    <button id="openSet" class="gear" type="button">設定</button>
     <div id="bar" class="bar"></div>
   </header>
 
@@ -144,6 +150,12 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
     <div id="syncSt" class="st">合言葉を入れると、パワポのノート欄がスライドごとに表示されます。</div>
     <button id="syncNow" class="ghost" type="button" hidden>いますぐ最新を確認</button>
   </div>
+  <div id="sendBox" class="sync">
+    <h3>スマホで直した文をパワポへ送る</h3>
+    <div class="row" id="tokRow"><input id="tok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="GitHubの鍵（github_pat_…）" aria-label="GitHubの鍵"><button id="tokSave" class="primary" type="button">登録</button></div>
+    <div id="sendSt" class="st">鍵を登録すると、「直す」で変えた文が、次の確認のときにパワポの新しい版に書き込まれます。</div>
+    <button id="tokClear" class="ghost" type="button" hidden>鍵を削除する</button>
+  </div>
   <div id="textBox" style="display:contents">
   <textarea id="src" spellcheck="false" aria-label="読み原稿"></textarea>
   <div id="found" class="found"></div>
@@ -157,6 +169,20 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
   <div class="btns">
     <button id="resetAll" class="ghost" type="button">1枚目とタイマーを戻す</button>
     <button id="apply" class="primary" type="button">この原稿で使う</button>
+  </div>
+</section>
+
+<section id="editSheet" class="sheet" hidden>
+  <div class="sheet-head">
+    <h2>スライド <span id="edN"></span> の原稿を直す</h2>
+    <button id="edClose" class="x" type="button">閉じる</button>
+  </div>
+  <textarea id="edText" class="big" spellcheck="false" aria-label="原稿"></textarea>
+  <p id="edWarn" class="warn" hidden></p>
+  <p id="edSt" class="note"></p>
+  <div class="btns">
+    <button id="edRevert" class="ghost" type="button">パワポの文に戻す</button>
+    <button id="edSave" class="primary" type="button">保存</button>
   </div>
 </section>
 
@@ -211,6 +237,9 @@ const fromText = t => split(t).map((t, i) => ({n: i + 1, t}));
 function remoteSlides(){ try { const r = JSON.parse(store.get('remote', 'null')); return r && r.slides && r.slides.length ? r : null; } catch { return null; } }
 let slides = (mode === 'pptx' && remoteSlides()) ? remoteSlides().slides : fromText(text);
 let idx = Math.min(+store.get('idx', 0) || 0, Math.max(0, slides.length - 1));
+let edits = {}; try { edits = JSON.parse(store.get('edits', '{}')) || {}; } catch {}
+const isEdited = s => mode === 'pptx' && edits[s.n] != null;
+const textOf = s => isEdited(s) ? edits[s.n].text : s.t;
 
 const track = $('track'), viewport = $('viewport');
 function esc(t){ return t.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
@@ -220,10 +249,11 @@ function plain(t){ return t.replace(CLK, '').replace(/\s+/g, ' ').trim(); }
 
 function build(){
   track.innerHTML = slides.map((s, i) =>
-    `<section class="slide" aria-label="スライド${s.n}"><p class="txt">${body(s.t)}</p><div class="more" hidden>続きあり ↓</div></section>`
+    `<section class="slide${isEdited(s) ? ' edited' : ''}" aria-label="スライド${s.n}"><p class="txt">${body(textOf(s))}</p><div class="more" hidden>続きあり ↓</div></section>`
   ).join('');
   track.querySelectorAll('.slide').forEach(el => el.addEventListener('scroll', () => checkMore(el), {passive:true}));
   $('tot').textContent = slides.length;
+  if (typeof paintPend === 'function') paintPend();
   show(false);
   if (typeof applyFont === 'function') applyFont();
 }
@@ -292,7 +322,7 @@ viewport.addEventListener('pointercancel', endDrag);
 
 // clicker / keyboard
 document.addEventListener('keydown', e => {
-  if (!$('setSheet').hidden || !$('listSheet').hidden) return;
+  if (!$('setSheet').hidden || !$('listSheet').hidden || !$('editSheet').hidden) return;
   if (['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); go(idx + 1); }
   if (['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); go(idx - 1); }
 });
@@ -358,7 +388,7 @@ $('resetAll').onclick = () => { idx = 0; resetTimer(); $('setSheet').hidden = tr
 // ---------- slide list ----------
 $('count').onclick = () => {
   $('list').innerHTML = slides.map((s, i) =>
-    `<li><button type="button" data-i="${i}" class="${i === idx ? 'on' : ''}"><span class="n">${s.n}</span><span class="t">${esc(plain(s.t) || '（ノートなし）')}</span></button></li>`).join('');
+    `<li><button type="button" data-i="${i}" class="${i === idx ? 'on' : ''}"><span class="n">${s.n}</span><span class="t">${esc(plain(textOf(s)) || '（ノートなし）')}</span></button></li>`).join('');
   $('listSheet').hidden = false;
   const on = $('list').querySelector('.on'); if (on) on.scrollIntoView({block:'center'});
 };
@@ -386,6 +416,8 @@ function paintMode(){
   $('modePptx').classList.toggle('on', mode === 'pptx');
   $('modeText').classList.toggle('on', mode === 'text');
   $('syncBox').hidden = mode !== 'pptx';
+  $('sendBox').hidden = mode !== 'pptx' || !store.get('pass', '');
+  if (typeof paintPend === 'function') paintPend();
   $('textBox').style.display = mode === 'text' ? 'contents' : 'none';
   paintSync();
 }
@@ -413,6 +445,7 @@ async function syncNow(loud){
     data.updated = env.updated;
     const first = !remoteSlides();
     store.set('remote', JSON.stringify(data)); store.set('remoteHash', env.hash);
+    pruneEdits(data.slides);
     if (mode === 'pptx'){
       const keepN = slides[idx] && slides[idx].n;
       slides = data.slides;
@@ -420,11 +453,11 @@ async function syncNow(loud){
       idx = first ? 0 : (at >= 0 ? at : Math.min(idx, slides.length - 1));
       build();
     }
-    paintSync();
+    paintSync(); paintPend();
     toast(first ? `パワポの原稿を読み込みました（${data.slides.length}枚）` : `最新の原稿に更新しました（${stamp(env.updated)}）`);
   } catch {
     if (loud) toast(remoteSlides() ? '電波がないため、保存済みの原稿を使っています' : '原稿を取得できませんでした。電波のある所で開いてください。');
-  } finally { syncing = false; }
+  } finally { syncing = false; checkConflicts(); if (store.get('editsDirty', '')) pushEdits(); }
 }
 $('unlock').onclick = () => {
   const v = $('pass').value.normalize('NFKC').trim().replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)); if (!v){ toast('合言葉を入れてください'); return; }
@@ -436,9 +469,104 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 setInterval(() => { if (!tStart) syncNow(false); }, 3 * 60 * 1000);   // never swap pages mid-talk while the timer runs
 addEventListener('online', () => syncNow(false));
 
+// ---------- edit on the phone, send to the deck ----------
+const squash = t => (t || '').replace(/\s+/g, '');
+function saveEdits(){ store.set('edits', JSON.stringify(edits)); store.set('editsDirty', '1'); }
+function pruneEdits(list){
+  let gone = 0;
+  for (const s of list) if (edits[s.n] && squash(edits[s.n].text) === squash(s.t)){ delete edits[s.n]; gone++; }
+  if (gone){ store.set('edits', JSON.stringify(edits)); toast(`スマホで直した${gone}枚がパワポに反映されました`); }
+}
+function paintPend(){
+  const n = Object.keys(edits).length, el = $('pend');
+  el.hidden = !(mode === 'pptx' && n);
+  el.textContent = `未反映 ${n}`;
+  $('edit').hidden = mode !== 'pptx' || !remoteSlides();
+  const tok = !!store.get('ghToken', '');
+  $('tokRow').hidden = tok; $('tokClear').hidden = !tok;
+  const sent = store.get('sentAt', '');
+  $('sendSt').textContent = !tok ? '鍵を登録すると、「直す」で変えた文が、次の確認のときにパワポの新しい版に書き込まれます。'
+    : (n ? `未反映 ${n}枚。` + (store.get('editsDirty', '') ? '電波が戻りしだい送ります。' : `送信済み（${stamp(sent)}）。Mac側の次の確認で、パワポの新しい版に書き込みます。`) : 'スマホで直した文はすべてパワポに反映済みです。');
+}
+function conflicts(){ try { return JSON.parse(store.get('conflicts', '[]')); } catch { return []; } }
+async function checkConflicts(){
+  const pass = store.get('pass', ''); if (!pass) return;
+  try {
+    const res = await fetch('edits.enc.json?t=' + Date.now(), {cache: 'no-store'});
+    if (!res.ok) return;
+    const data = await openSealed(await res.json(), pass);
+    const list = (data.conflicts || []).filter(c => edits[c.n]);
+    const before = store.get('conflicts', '[]');
+    store.set('conflicts', JSON.stringify(list));
+    if (list.length && JSON.stringify(list) !== before) toast(`スライド ${list.map(c => c.n).join('・')} はパワポ側でも直されていたため、書き込みを止めています`);
+  } catch {}
+}
+let editing = null;
+$('edit').onclick = () => {
+  const s = slides[idx]; if (!s) return;
+  editing = s;
+  $('edN').textContent = s.n;
+  $('edText').value = textOf(s);
+  const c = conflicts().find(c => c.n === s.n);
+  $('edWarn').hidden = !c;
+  if (c) $('edWarn').textContent = `パワポ側でもこのスライドのノートが直されているため、書き込みを止めています。このまま「保存」すると、スマホの文でパワポを上書きします。`;
+  $('edSt').textContent = isEdited(s) ? 'このスライドはスマホで直した文を表示しています（未反映）。' : 'いまの文はパワポのノートと同じです。';
+  $('edRevert').disabled = !isEdited(s);
+  $('editSheet').hidden = false;
+};
+$('edClose').onclick = () => { $('editSheet').hidden = true; };
+$('edSave').onclick = () => {
+  const s = editing; if (!s) return;
+  const t = $('edText').value.replace(/\r/g, '').trim();
+  if (squash(t) === squash(s.t)) delete edits[s.n];
+  else edits[s.n] = {text: t, base: s.t, at: new Date().toISOString()};
+  store.set('conflicts', JSON.stringify(conflicts().filter(c => c.n !== s.n)));
+  saveEdits(); $('editSheet').hidden = true; build(); pushEdits();
+  toast(edits[s.n] ? '保存しました。パワポへの書き込みを予約しました' : 'パワポの文に戻しました');
+};
+$('edRevert').onclick = () => { $('edText').value = editing ? editing.t : ''; $('edSave').click(); };
+
+const API = 'https://api.github.com/repos/hirokimiyahirokimiya/prompter/contents/edits.enc.json';
+async function sealObj(obj, pass){
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations: 250000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt']);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(obj))));
+  const b64 = u => btoa(String.fromCharCode(...u));
+  return {v: 1, updated: new Date().toISOString(), salt: b64(salt), iv: b64(iv), ct: b64(ct)};
+}
+let pushing = false;
+async function pushEdits(loud){
+  const tok = store.get('ghToken', ''), pass = store.get('pass', '');
+  if (!tok || !pass || pushing || !store.get('editsDirty', '')) { paintPend(); return; }
+  pushing = true;
+  const H = {Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json'};
+  try {
+    const cur = await fetch(API + '?t=' + Date.now(), {headers: H, cache: 'no-store'});
+    if (cur.status === 401 || cur.status === 403) throw new Error('auth');
+    const sha = cur.ok ? (await cur.json()).sha : undefined;
+    const list = Object.entries(edits).map(([n, e]) => ({n: +n, text: e.text, base: e.base, at: e.at}));
+    const env = await sealObj({edits: list, from: 'phone'}, pass);
+    const put = await fetch(API, {method: 'PUT', headers: H, body: JSON.stringify({message: `スマホで原稿を修正（${list.length}枚）`, content: btoa(JSON.stringify(env)), sha})});
+    if (put.status === 401 || put.status === 403) throw new Error('auth');
+    if (!put.ok) throw new Error('put');
+    store.set('editsDirty', ''); store.set('sentAt', new Date().toISOString());
+    if (loud) toast('パワポへの書き込みを予約しました');
+  } catch (e) {
+    if (e.message === 'auth'){ toast('GitHubの鍵が使えません。設定で登録し直してください。'); }
+    else if (loud) toast('電波が戻りしだい送ります');
+  } finally { pushing = false; paintPend(); }
+}
+$('tokSave').onclick = () => {
+  const v = $('tok').value.trim(); if (!v){ toast('鍵を貼り付けてください'); return; }
+  store.set('ghToken', v); $('tok').value = ''; store.set('editsDirty', '1'); pushEdits(true);
+};
+$('tokClear').onclick = () => { store.set('ghToken', ''); paintPend(); toast('鍵を削除しました'); };
+addEventListener('online', () => pushEdits());
+
 // ---------- boot ----------
 fsMax.value = store.get('fsMax', 48); fsMin.value = store.get('fsMin', 24); mins.value = Math.round(limit / 60);
-applyFont(); build(); drawTimer(); paintMode(); syncNow(false);
+applyFont(); build(); drawTimer(); paintMode(); paintPend(); syncNow(false);
 if (!store.get('pass', '') && !store.get('askedPass', '')){ store.set('askedPass', '1'); mode = 'pptx'; store.set('mode', 'pptx'); paintMode(); src.value = text; $('setSheet').hidden = false; }
 addEventListener('resize', () => { show(false); applyFont(); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyFont);
