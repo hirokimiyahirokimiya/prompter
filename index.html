@@ -18,6 +18,7 @@
   --f-body:"BIZ UDPGothic","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
   color-scheme:dark;
 }
+[hidden]{display:none!important}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);-webkit-text-size-adjust:100%;overscroll-behavior:none}
@@ -51,6 +52,8 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 @keyframes blink{50%{opacity:.2}}
 @media (prefers-reduced-motion:reduce){.s.cur .caret{animation:none}.s{transition:none}}
 .para{display:block;height:.9em}
+.cue{display:block;width:fit-content;font-size:.5em;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:.1em .6em;margin:.5em 0;opacity:.55;letter-spacing:.05em}
+.cue.past{opacity:.25}
 .guide{position:fixed;left:0;right:0;top:calc(30vh + env(safe-area-inset-top,0px));height:0;border-top:1px dashed rgba(255,201,74,.18);pointer-events:none}
 
 /* heard */
@@ -160,12 +163,7 @@ function normChar(c){
 function normalize(str){ let o=''; for (const ch of str) o += normChar(ch); return o; }
 
 function build(text){
-  orig = text; nmap = []; let ns = '';
-  for (let i = 0; i < orig.length; i++){
-    const n = normChar(orig[i]);
-    for (const ch of n){ ns += ch; nmap.push(i); }
-  }
-  normStr = ns;
+  orig = text;
   sents = []; let a = 0;
   for (let i = 0; i < orig.length; i++){
     const c = orig[i];
@@ -176,16 +174,21 @@ function build(text){
     }
   }
   if (a < orig.length) sents.push({a, b:orig.length});
-  // norm range for each sentence
-  let k = 0;
+  // slide cues like (クリック) on their own line: shown, not read
+  const CUE = /^\s*[（(【\[][^）)】\]]*[）)】\]]\s*$/;
+  for (const s of sents) if (!s.br && CUE.test(orig.slice(s.a, s.b))) s.cue = true;
+  nmap = []; let ns = '';
   for (const s of sents){
-    while (k < nmap.length && nmap[k] < s.a) k++;
-    s.na = k;
-    let m = k; while (m < nmap.length && nmap[m] < s.b) m++;
-    s.nb = m;
+    s.na = nmap.length;
+    if (!s.br && !s.cue){
+      for (let i = s.a; i < s.b; i++){ for (const ch of normChar(orig[i])){ ns += ch; nmap.push(i); } }
+    }
+    s.nb = nmap.length;
   }
+  normStr = ns;
   pos = 0; renderAll();
 }
+const skip = s => s.br || s.cue;
 
 // ---------- rendering ----------
 const scriptEl = $('script');
@@ -196,6 +199,7 @@ function renderAll(){
   sentEls = sents.map((s, i) => {
     if (s.br){ const br = document.createElement('span'); br.className = 'para'; scriptEl.appendChild(br); return br; }
     const el = document.createElement('span');
+    if (s.cue){ el.className = 'cue'; el.textContent = orig.slice(s.a, s.b).trim().replace(/^[（(【\[]|[）)】\]]$/g, ''); scriptEl.appendChild(el); return el; }
     el.className = 's'; el.dataset.i = i;
     el.textContent = orig.slice(s.a, s.b);
     scriptEl.appendChild(el);
@@ -207,16 +211,17 @@ let lastCur = -1;
 function curIndex(){
   // sentence that contains pos (first not fully read)
   for (let i = 0; i < sents.length; i++){
-    const s = sents[i]; if (s.br) continue;
+    const s = sents[i]; if (skip(s)) continue;
     if (pos < s.nb) return i;
   }
-  for (let i = sents.length-1; i >= 0; i--) if (!sents[i].br) return i;
+  for (let i = sents.length-1; i >= 0; i--) if (!skip(sents[i])) return i;
   return -1;
 }
 function update(forceScroll){
   const ci = curIndex();
   sents.forEach((s, i) => {
     if (s.br) return;
+    if (s.cue){ sentEls[i].className = i < ci ? 'cue past' : 'cue'; return; }
     const el = sentEls[i];
     const want = i < ci ? 's done' : i === ci ? 's cur' : 's';
     if (el.className !== want) el.className = want;
@@ -320,15 +325,15 @@ goBtn.onclick = () => running ? stopRec() : startRec();
 
 // ---------- manual control ----------
 function jumpSentence(i){
-  const s = sents[i]; if (!s || s.br) return;
+  const s = sents[i]; if (!s || skip(s)) return;
   pos = s.na; finalBuf = ''; update(true);
 }
 function stepSentence(d){
   let ci = curIndex();
   if (d < 0 && ci >= 0 && pos > sents[ci].na){ jumpSentence(ci); return; }
   let i = ci + d;
-  while (i >= 0 && i < sents.length && sents[i].br) i += d;
-  if (i < 0) i = sents.findIndex(s => !s.br);
+  while (i >= 0 && i < sents.length && skip(sents[i])) i += d;
+  if (i < 0) i = sents.findIndex(s => !skip(s));
   if (i >= sents.length){ pos = normStr.length; update(true); return; }
   jumpSentence(i);
 }
