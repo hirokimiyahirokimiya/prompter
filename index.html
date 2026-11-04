@@ -42,7 +42,8 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 .count .chev{font-size:11px;color:var(--dim);margin-left:2px}
 .timer{margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;padding:2px 10px;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;min-width:5.4em;text-align:center}
 .timer.paused{color:var(--dim)}
-.timer.warn{color:var(--warn);border-color:var(--warn)}
+.timer.primary.hd{padding:7px 16px;font-size:14px;border-radius:10px}
+.warn{color:var(--warn);border-color:var(--warn)}
 .timer.over{color:var(--bad);border-color:var(--bad)}
 .gear{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:13px}
 .bar{position:absolute;left:0;bottom:-1px;height:3px;background:var(--accent);transition:width .3s ease;width:0}
@@ -175,6 +176,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 <section id="editSheet" class="sheet" hidden>
   <div class="sheet-head">
     <h2>スライド <span id="edN"></span> の原稿を直す</h2>
+    <button id="edSaveTop" class="primary hd" type="button">保存</button>
     <button id="edClose" class="x" type="button">閉じる</button>
   </div>
   <textarea id="edText" class="big" spellcheck="false" aria-label="原稿"></textarea>
@@ -524,6 +526,7 @@ $('edSave').onclick = () => {
   saveEdits(); $('editSheet').hidden = true; build(); pushEdits();
   toast(edits[s.n] ? '保存しました。パワポへの書き込みを予約しました' : 'パワポの文に戻しました');
 };
+$('edSaveTop').onclick = () => $('edSave').click();
 $('edRevert').onclick = () => { $('edText').value = editing ? editing.t : ''; $('edSave').click(); };
 
 const API = 'https://api.github.com/repos/hirokimiyahirokimiya/prompter/contents/edits.enc.json';
