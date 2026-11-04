@@ -22,7 +22,6 @@
   --accent:#ffc94a; --accent-ink:#1a1400;
   --warn:#ff9a4a; --bad:#ff5a5f;
   --f-body:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
-  --fs:30px;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
@@ -37,15 +36,15 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 
 /* top bar */
 .top{display:flex;align-items:center;gap:10px;background:var(--panel);border-bottom:1px solid var(--line);
-  padding:calc(8px + env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px));position:relative}
-.count{background:none;border:0;padding:4px 0;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:4px}
+  padding:calc(4px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 4px max(12px,env(safe-area-inset-left,0px));position:relative}
+.count{background:none;border:0;padding:2px 0;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:4px}
 .count small{font-size:13px;color:var(--dim);font-weight:400}
 .count .chev{font-size:11px;color:var(--dim);margin-left:2px}
-.timer{margin-left:auto;background:none;border:1px solid var(--line);border-radius:10px;padding:5px 12px;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;min-width:5.4em;text-align:center}
+.timer{margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;padding:2px 10px;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;min-width:5.4em;text-align:center}
 .timer.paused{color:var(--dim)}
 .timer.warn{color:var(--warn);border-color:var(--warn)}
 .timer.over{color:var(--bad);border-color:var(--bad)}
-.gear{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 11px;font-size:14px}
+.gear{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:13px}
 .bar{position:absolute;left:0;bottom:-1px;height:3px;background:var(--accent);transition:width .3s ease;width:0}
 
 /* slide track */
@@ -53,10 +52,10 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 .track{height:100%;display:flex;transition:transform .3s cubic-bezier(.2,.8,.2,1);will-change:transform}
 .track.drag{transition:none}
 .slide{flex:0 0 100%;height:100%;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;-webkit-overflow-scrolling:touch;position:relative;
-  padding:22px max(20px,env(safe-area-inset-right,0px)) 40px max(20px,env(safe-area-inset-left,0px))}
-.slide .no{font-size:13px;letter-spacing:.12em;color:var(--accent);font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+  padding:8px max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px))}
+.slide .no{font-size:12px;letter-spacing:.12em;color:var(--accent);font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:8px}
 .slide .no::after{content:"";flex:1;height:1px;background:var(--line)}
-.slide .txt{font-size:var(--fs);line-height:1.7;font-weight:700;white-space:pre-wrap;word-break:break-word;margin:0;max-width:40em}
+.slide .txt{font-size:40px;line-height:1.6;font-weight:700;white-space:pre-wrap;word-break:break-word;margin:0;max-width:40em}
 .clk{display:inline-block;font-size:.5em;line-height:1;vertical-align:.25em;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:.25em .5em;margin:0 .25em;font-weight:700;letter-spacing:.05em}
 .empty{color:var(--faint)}
 .sync{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
@@ -67,7 +66,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 .seg{display:flex;gap:6px}
 .seg button{flex:1;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;font-size:14px}
 .seg button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
-.more{position:absolute;left:0;right:0;bottom:0;height:52px;pointer-events:none;
+.more{position:absolute;left:0;right:0;bottom:0;height:36px;pointer-events:none;
   background:linear-gradient(to bottom,transparent,var(--bg));display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:12px;color:var(--dim)}
 .edge{position:absolute;top:50%;transform:translateY(-50%);font-size:13px;color:var(--faint);pointer-events:none}
 
@@ -75,9 +74,9 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
 .next{padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));border-top:1px solid var(--line);background:var(--panel);
   font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .next b{color:var(--accent);font-weight:700;margin-right:6px}
-.ctrl{display:grid;grid-template-columns:1fr 1.6fr;gap:10px;background:var(--panel);
-  padding:4px max(14px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
-.ctrl button{border-radius:16px;padding:20px 0;font-size:19px;font-weight:700;border:1px solid var(--line);background:var(--raised)}
+.ctrl{display:grid;grid-template-columns:1fr 1.6fr;gap:8px;background:var(--panel);border-top:1px solid var(--line);
+  padding:6px max(12px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.ctrl button{border-radius:12px;padding:11px 0;font-size:17px;font-weight:700;border:1px solid var(--line);background:var(--raised)}
 .ctrl .fwd{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .ctrl button:disabled{opacity:.3}
 .ctrl button:active:not(:disabled){transform:scale(.97)}
@@ -123,7 +122,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
     <div id="track" class="track"></div>
   </main>
 
-  <div id="next" class="next"></div>
+  <div id="next" hidden></div>
   <nav class="ctrl">
     <button id="prev" type="button">‹ 前へ</button>
     <button id="fwd" class="fwd" type="button">次へ ›</button>
@@ -148,11 +147,12 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
   <div id="textBox" style="display:contents">
   <textarea id="src" spellcheck="false" aria-label="読み原稿"></textarea>
   <div id="found" class="found"></div>
-  <p class="note">スライドの区切りは、<code>（クリック）</code> だけの行、または <code>---</code> だけの行です。区切りの行がない原稿は、空行（何も書いていない行）で区切ります。原稿はこのスマホの中にだけ保存されます。</p>
+  <p class="note">スライドの区切りは、<code>（クリック）</code> だけの行、または <code>---</code> だけの行です。区切りの行がない原稿は、空行（何も書いていない行）で区切ります。<code>#</code> や <code>※</code> で始まる行は、メモとして表示しません。文字はスライドごとに、1画面に収まるいちばん大きな大きさに自動で合わせます。「これより小さくしない」を下回るときだけ、スクロールになります。原稿はこのスマホの中にだけ保存されます。</p>
   </div>
   <div class="row">
     <label>持ち時間 <input id="mins" type="number" min="1" max="90" value="7" inputmode="numeric"> 分</label>
-    <label>文字の大きさ <input id="fs" type="range" min="20" max="56" value="30"></label>
+    <label>いちばん大きく <input id="fsMax" type="range" min="28" max="72" value="48"></label>
+    <label>これより小さくしない <input id="fsMin" type="range" min="16" max="36" value="24"></label>
   </div>
   <div class="btns">
     <button id="resetAll" class="ghost" type="button">1枚目とタイマーを戻す</button>
@@ -191,7 +191,8 @@ const SAMPLE = `【サンプル原稿】本日は、乳房再建における脂�
 // ---------- split script into slides ----------
 const SEP = /^\s*(?:[（(【\[]\s*(?:クリック|くりっく|click|次へ|次のスライド|スライド\s*\d*|slide\s*\d*)\s*[）)】\]]|-{3,}|ー{3,}|={3,}|＝{3,})\s*$/i;
 function split(text){
-  const lines = text.replace(/\r/g, '').split('\n');
+  const lines = text.replace(/\r/g, '').split('\n').filter(l => !/^\s*(?:#|＃|※|\/\/)/.test(l));
+  text = lines.join('\n');
   let parts;
   if (lines.some(l => SEP.test(l))){
     parts = []; let buf = [];
@@ -219,11 +220,12 @@ function plain(t){ return t.replace(CLK, '').replace(/\s+/g, ' ').trim(); }
 
 function build(){
   track.innerHTML = slides.map((s, i) =>
-    `<section class="slide" aria-label="スライド${s.n}"><p class="no">SLIDE ${s.n}</p><p class="txt">${body(s.t)}</p><div class="more" hidden>続きあり ↓</div></section>`
+    `<section class="slide" aria-label="スライド${s.n}"><p class="txt">${body(s.t)}</p><div class="more" hidden>続きあり ↓</div></section>`
   ).join('');
   track.querySelectorAll('.slide').forEach(el => el.addEventListener('scroll', () => checkMore(el), {passive:true}));
   $('tot').textContent = slides.length;
   show(false);
+  if (typeof applyFont === 'function') applyFont();
 }
 function checkMore(el){
   const more = el.querySelector('.more');
@@ -321,18 +323,29 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 document.addEventListener('pointerdown', () => wake(true), {once:true});
 
 // ---------- settings ----------
-const src = $('src'), fs = $('fs'), mins = $('mins');
-function applyFont(){ document.documentElement.style.setProperty('--fs', fs.value + 'px'); }
+const src = $('src'), fsMax = $('fsMax'), fsMin = $('fsMin'), mins = $('mins');
+// Largest size that fits one screen; below the minimum, keep the minimum and let it scroll.
+function fitOne(el){
+  const t = el.querySelector('.txt'), hi0 = +fsMax.value, lo0 = Math.min(+fsMin.value, hi0);
+  const fits = px => { t.style.fontSize = px + 'px'; return el.scrollHeight <= el.clientHeight + 1; };
+  if (fits(hi0)) { checkMore(el); return; }
+  if (!fits(lo0)) { t.style.fontSize = lo0 + 'px'; checkMore(el); return; }
+  let lo = lo0, hi = hi0;
+  while (hi - lo > 1){ const mid = (lo + hi) >> 1; if (fits(mid)) lo = mid; else hi = mid; }
+  t.style.fontSize = lo + 'px'; checkMore(el);
+}
+let fitQueued = 0;
+function applyFont(){ cancelAnimationFrame(fitQueued); fitQueued = requestAnimationFrame(() => track.querySelectorAll('.slide').forEach(fitOne)); }
 function countFound(){ const n = split(src.value).length; $('found').textContent = n ? `${n}枚のスライドに分かれます` : '原稿を貼り付けてください'; }
 $('openSet').onclick = () => { src.value = text; countFound(); paintMode(); $('setSheet').hidden = false; };
 $('closeSet').onclick = () => { $('setSheet').hidden = true; };
 src.oninput = countFound;
-fs.oninput = applyFont;
+fsMax.oninput = fsMin.oninput = applyFont;
 $('apply').onclick = () => {
   const t = src.value.trim();
   if (!t){ toast('原稿が空です。貼り付けてから押してください。'); return; }
   const changed = t !== text;
-  text = t; store.set('text', text); store.set('fs', fs.value);
+  text = t; store.set('text', text); store.set('fsMax', fsMax.value); store.set('fsMin', fsMin.value);
   if (mode === 'text') slides = fromText(text);
   const m = Math.max(1, Math.min(90, +mins.value || 7)); store.set('mins', m); limit = m * 60;
   if (changed) idx = 0;
@@ -424,10 +437,11 @@ setInterval(() => { if (!tStart) syncNow(false); }, 3 * 60 * 1000);   // never s
 addEventListener('online', () => syncNow(false));
 
 // ---------- boot ----------
-fs.value = store.get('fs', 30); mins.value = Math.round(limit / 60);
+fsMax.value = store.get('fsMax', 48); fsMin.value = store.get('fsMin', 24); mins.value = Math.round(limit / 60);
 applyFont(); build(); drawTimer(); paintMode(); syncNow(false);
 if (!store.get('pass', '') && !store.get('askedPass', '')){ store.set('askedPass', '1'); mode = 'pptx'; store.set('mode', 'pptx'); paintMode(); src.value = text; $('setSheet').hidden = false; }
-addEventListener('resize', () => show(false));
+addEventListener('resize', () => { show(false); applyFont(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyFont);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
