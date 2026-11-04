@@ -79,6 +79,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:14px;font-weight:700;font-size:16px}
 .ghost{background:none;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px}
 .btns{display:flex;gap:10px}.btns>*{flex:1}
+.undo{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(128px + env(safe-area-inset-bottom,0px));z-index:15;background:var(--panel);color:var(--accent);border:1px solid var(--accent);border-radius:99px;padding:10px 16px;font-size:15px;font-weight:700;box-shadow:0 4px 16px #0008}
 .toast{position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#000c;border:1px solid var(--line);padding:10px 14px;border-radius:10px;font-size:14px;z-index:30;max-width:90vw;text-align:center}
 </style>
 </head>
@@ -122,6 +123,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
   </div>
 </section>
 
+<button id="undo" class="undo" type="button" hidden>↩ 元の位置に戻す（「もどる」）</button>
 <div id="toast" class="toast" hidden></div>
 
 <script>
@@ -287,6 +289,7 @@ function decide(e, sc, now){
   }
   if (!ok || e === conf) return false;
   const jumped = Math.abs(e - conf) > 60;
+  if (jumped) offerUndo(conf, now);
   conf = e; lastMove = now; pending = null;
   if (jumped) hist = [];
   hist.push([now, e]); while (hist.length && now - hist[0][0] > 8000) hist.shift();
@@ -309,6 +312,24 @@ function locate(heardNorm){
   });
   for (const r of cand) if (decide(r.e, r.s, now)){ update(); return; }
 }
+// ---------- undo a sudden jump (button or saying もどる) ----------
+let undo = null, undoTimer = 0;
+const undoBtn = document.getElementById('undo');
+function offerUndo(prev, now){
+  undo = {pos: prev, at: now, mark: lastHeardLen};
+  undoBtn.hidden = false;
+  clearTimeout(undoTimer); undoTimer = setTimeout(clearUndo, 10000);
+}
+function clearUndo(){ undo = null; undoBtn.hidden = true; clearTimeout(undoTimer); }
+function restore(){
+  if (!undo) return;
+  pos = conf = undo.pos; ignore = lastHeardLen; pending = null; hist = [];
+  lastMove = performance.now(); clearUndo(); update(true);
+  toast('元の位置に戻しました');
+}
+undoBtn.onclick = restore;
+const UNDO_WORD = /もどる|もどって|もどし|戻る|戻って|戻し/;
+
 // between recognition updates, advance at the speaker's pace (max 14 chars ahead)
 setInterval(() => {
   if (!running) return;
@@ -340,6 +361,7 @@ function makeRec(){
     const full = normalize(finalBuf + interim);
     if (full.length < ignore) ignore = 0;
     lastHeardLen = full.length;
+    if (undo && UNDO_WORD.test(full.slice(Math.max(ignore, undo.mark)))){ restore(); return; }
     locate(full.slice(ignore));
   };
   r.onerror = ev => {
@@ -377,7 +399,7 @@ goBtn.onclick = () => running ? stopRec() : startRec();
 // ---------- manual control ----------
 function jumpSentence(i){
   const s = sents[i]; if (!s || skip(s)) return;
-  pos = conf = s.na; ignore = lastHeardLen; pending = null; hist = []; lastMove = performance.now(); update(true);
+  clearUndo(); pos = conf = s.na; ignore = lastHeardLen; pending = null; hist = []; lastMove = performance.now(); update(true);
 }
 function stepSentence(d){
   let ci = curIndex();
