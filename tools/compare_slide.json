@@ -1,0 +1,18 @@
+{
+ "after": 21,
+ "eyebrow": "考察 / DISCUSSION",
+ "title": "短切開リフトとの比較",
+ "header": ["術式", "切開", "剥離層", "頸部", "固定"],
+ "rows": [
+  ["MACS\n(Tonnard 2002)", "耳前のみ", "皮下＋SMAS縫縮", "ループ＋吸引", "巾着縫合で頭側へ"],
+  ["Baker法\n(2001)", "耳前中心", "皮下＋SMAS切除", "広頸筋の切除", "SMASの縫合"],
+  ["MADE\n(Jacono 2011)", "MACS型", "ディーププレーン", "広頸筋形成を追加", "垂直方向の挙上"],
+  ["本法", "耳前〜耳後", "ディーププレーン\n（3腔）", "同じ傷から\nSCM筋膜上まで", "乳様突起骨膜\n＋耳甲介深部"]
+ ],
+ "highlight_row": 3,
+ "col_widths": [1420000, 1300000, 1745000, 1745000, 1745000],
+ "head_sz": 1200, "body_sz": 1400, "head_h": 340000, "row_h": 650000, "table_y": 1430000,
+ "refs": "Tonnard P, et al. Plast Reconstr Surg 2002 / Baker DC. Aesthet Surg J 2001 / Jacono AA, Parikh SS. Aesthet Surg J 2011",
+ "refs_y": 4500000,
+ "notes": "これまでの短切開法との比較です。MACSやBakerの方法は、皮下剥離とSMASの縫縮や切除が中心です。短い切開でディーププレーンを行う方法には、JaconoらのMADEリフトがあります。本法は、同じ短い切開から頸部のSCM筋膜上まで剥離し、乳様突起の骨膜に固定する点が異なります。"
+}
