@@ -49,7 +49,9 @@ for el in list(tree):
 for t in s.findall('p:timing', NS) + s.findall('p:transition', NS): s.remove(t)
 nid = max(int(e.get('id')) for e in s.iter('{%s}cNvPr' % P)) + 1
 def font(sz, color, b=True, i=False):
-    return (f'<a:rPr lang="ja-JP" altLang="en-US" sz="{sz}"{" b=\"1\"" if b else ""}{" i=\"1\"" if i else ""} dirty="0">'
+    bold = ' b="1"' if b else ''
+    ital = ' i="1"' if i else ''
+    return (f'<a:rPr lang="ja-JP" altLang="en-US" sz="{sz}"{bold}{ital} dirty="0">'
             f'<a:solidFill><a:srgbClr val="{color}"/></a:solidFill><a:latin typeface="Helvetica Neue"/><a:ea typeface="Hiragino Sans"/><a:cs typeface="Hiragino Sans"/></a:rPr>')
 X0, W = 658368, 7955279
 title = f'''<p:sp xmlns:p="{P}" xmlns:a="{A}"><p:nvSpPr><p:cNvPr id="{nid}" name="Title"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>
