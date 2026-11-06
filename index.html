@@ -146,10 +146,9 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manip
     <button id="modeText" type="button">手入力の原稿</button>
   </div>
   <div id="syncBox" class="sync">
-    <h3>発表パワポのノートを読み込む</h3>
-    <div class="row" id="passRow"><input id="pass" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="合言葉（ひらがな）" aria-label="合言葉"><button id="unlock" class="primary" type="button">読み込む</button></div>
-    <div id="syncSt" class="st">合言葉を入れると、パワポのノート欄がスライドごとに表示されます。</div>
-    <button id="syncNow" class="ghost" type="button" hidden>いますぐ最新を確認</button>
+    <h3>発表パワポのノート</h3>
+    <div id="syncSt" class="st">パワポのノート欄を、スライドごとに表示します。</div>
+    <button id="syncNow" class="ghost" type="button">いますぐ最新を確認</button>
   </div>
   <div id="sendBox" class="sync">
     <h3>スマホで直した文をパワポへ送る</h3>
@@ -234,7 +233,7 @@ function split(text){
 
 // ---------- state ----------
 let text = store.get('text', SAMPLE);
-let mode = store.get('mode', 'text');
+let mode = store.get('mode', 'pptx');
 const fromText = t => split(t).map((t, i) => ({n: i + 1, t}));
 function remoteSlides(){ try { const r = JSON.parse(store.get('remote', 'null')); return r && r.slides && r.slides.length ? r : null; } catch { return null; } }
 let slides = (mode === 'pptx' && remoteSlides()) ? remoteSlides().slides : fromText(text);
@@ -399,26 +398,17 @@ $('list').onclick = e => { const b = e.target.closest('button'); if (!b) return;
 
 function toast(t){ const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2600); }
 
-// ---------- PowerPoint notes sync (encrypted file in the repo) ----------
-const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-async function openSealed(env, pass){
-  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
-  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt: unb64(env.salt), iterations: 250000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['decrypt']);
-  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv: unb64(env.iv)}, key, unb64(env.ct));
-  return JSON.parse(new TextDecoder().decode(pt));
-}
+// ---------- PowerPoint notes sync (script.json in the repo; the notes hold no personal data) ----------
 function stamp(iso){ const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function paintSync(){
-  const r = remoteSlides(), has = !!store.get('pass', '');
-  $('passRow').hidden = has;
-  $('syncNow').hidden = !has;
+  const r = remoteSlides();
   if (r) $('syncSt').innerHTML = `<b>${esc(r.file.replace(/\.pptx$/i, ''))}</b><br>${r.slides.length}枚・パワポ側の更新 ${stamp(r.updated)}<br>電波があれば開くたびに最新を確認します。電波がなくても、最後に読み込んだ原稿で使えます。`;
 }
 function paintMode(){
   $('modePptx').classList.toggle('on', mode === 'pptx');
   $('modeText').classList.toggle('on', mode === 'text');
   $('syncBox').hidden = mode !== 'pptx';
-  $('sendBox').hidden = mode !== 'pptx' || !store.get('pass', '');
+  $('sendBox').hidden = mode !== 'pptx';
   if (typeof paintPend === 'function') paintPend();
   $('textBox').style.display = mode === 'text' ? 'contents' : 'none';
   paintSync();
@@ -429,24 +419,19 @@ function useMode(m){
   slides = (m === 'pptx' && r) ? r.slides : fromText(text);
   idx = Math.min(idx, slides.length - 1); build(); paintMode();
 }
-$('modePptx').onclick = () => { useMode('pptx'); if (store.get('pass', '')) syncNow(true); };
+$('modePptx').onclick = () => { useMode('pptx'); syncNow(true); };
 $('modeText').onclick = () => useMode('text');
 let syncing = false;
 async function syncNow(loud){
-  const pass = store.get('pass', '');
-  if (!pass || syncing) return;
+  if (syncing) return;
   syncing = true;
   try {
-    const res = await fetch('script.enc.json?t=' + Date.now(), {cache: 'no-store'});
+    const res = await fetch('script.json?t=' + Date.now(), {cache: 'no-store'});
     if (!res.ok) throw new Error('http');
-    const env = await res.json();
-    if (env.hash === store.get('remoteHash', '') && remoteSlides()){ if (loud) toast('最新の原稿です'); return; }
-    let data;
-    try { data = await openSealed(env, pass); }
-    catch { store.set('pass', ''); paintSync(); toast('合言葉が違います。もう一度入れてください。'); return; }
-    data.updated = env.updated;
+    const data = await res.json();
+    if (data.hash === store.get('remoteHash', '') && remoteSlides()){ if (loud) toast('最新の原稿です'); return; }
     const first = !remoteSlides();
-    store.set('remote', JSON.stringify(data)); store.set('remoteHash', env.hash);
+    store.set('remote', JSON.stringify(data)); store.set('remoteHash', data.hash);
     pruneEdits(data.slides);
     if (mode === 'pptx'){
       const keepN = slides[idx] && slides[idx].n;
@@ -456,16 +441,11 @@ async function syncNow(loud){
       build();
     }
     paintSync(); paintPend();
-    toast(first ? `パワポの原稿を読み込みました（${data.slides.length}枚）` : `最新の原稿に更新しました（${stamp(env.updated)}）`);
+    toast(first ? `パワポの原稿を読み込みました（${data.slides.length}枚）` : `最新の原稿に更新しました（${stamp(data.updated)}）`);
   } catch {
     if (loud) toast(remoteSlides() ? '電波がないため、保存済みの原稿を使っています' : '原稿を取得できませんでした。電波のある所で開いてください。');
   } finally { syncing = false; checkConflicts(); if (store.get('editsDirty', '')) pushEdits(); }
 }
-$('unlock').onclick = () => {
-  const v = $('pass').value.normalize('NFKC').trim().replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)); if (!v){ toast('合言葉を入れてください'); return; }
-  store.set('pass', v); $('pass').value = ''; mode = 'pptx'; store.set('mode', 'pptx'); paintMode(); syncNow(true);
-};
-$('pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('unlock').click(); });
 $('syncNow').onclick = () => syncNow(true);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(false); });
 setInterval(() => { if (!tStart) syncNow(false); }, 3 * 60 * 1000);   // never swap pages mid-talk while the timer runs
@@ -492,11 +472,10 @@ function paintPend(){
 }
 function conflicts(){ try { return JSON.parse(store.get('conflicts', '[]')); } catch { return []; } }
 async function checkConflicts(){
-  const pass = store.get('pass', ''); if (!pass) return;
   try {
-    const res = await fetch('edits.enc.json?t=' + Date.now(), {cache: 'no-store'});
+    const res = await fetch('edits.json?t=' + Date.now(), {cache: 'no-store'});
     if (!res.ok) return;
-    const data = await openSealed(await res.json(), pass);
+    const data = await res.json();
     // edits the Mac already wrote into the deck (matched by slide and edit time) are done, even if reworded there
     let done = 0;
     for (const a of (data.applied || [])){
@@ -535,19 +514,12 @@ $('edSave').onclick = () => {
 $('edSaveTop').onclick = () => $('edSave').click();
 $('edRevert').onclick = () => { $('edText').value = editing ? editing.t : ''; $('edSave').click(); };
 
-const API = 'https://api.github.com/repos/hirokimiyahirokimiya/prompter/contents/edits.enc.json';
-async function sealObj(obj, pass){
-  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
-  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations: 250000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt']);
-  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(obj))));
-  const b64 = u => btoa(String.fromCharCode(...u));
-  return {v: 1, updated: new Date().toISOString(), salt: b64(salt), iv: b64(iv), ct: b64(ct)};
-}
+const API = 'https://api.github.com/repos/hirokimiyahirokimiya/prompter/contents/edits.json';
+const b64utf8 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 let pushing = false;
 async function pushEdits(loud){
-  const tok = store.get('ghToken', ''), pass = store.get('pass', '');
-  if (!tok || !pass || pushing || !store.get('editsDirty', '')) { paintPend(); return; }
+  const tok = store.get('ghToken', '');
+  if (!tok || pushing || !store.get('editsDirty', '')) { paintPend(); return; }
   pushing = true;
   const H = {Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json'};
   try {
@@ -555,8 +527,8 @@ async function pushEdits(loud){
     if (cur.status === 401 || cur.status === 403) throw new Error('auth');
     const sha = cur.ok ? (await cur.json()).sha : undefined;
     const list = Object.entries(edits).map(([n, e]) => ({n: +n, text: e.text, base: e.base, at: e.at}));
-    const env = await sealObj({edits: list, from: 'phone'}, pass);
-    const put = await fetch(API, {method: 'PUT', headers: H, body: JSON.stringify({message: `スマホで原稿を修正（${list.length}枚）`, content: btoa(JSON.stringify(env)), sha})});
+    const body = JSON.stringify({edits: list, from: 'phone', updated: new Date().toISOString()}, null, 1);
+    const put = await fetch(API, {method: 'PUT', headers: H, body: JSON.stringify({message: `スマホで原稿を修正（${list.length}枚）`, content: b64utf8(body), sha})});
     if (put.status === 401 || put.status === 403) throw new Error('auth');
     if (!put.ok) throw new Error('put');
     store.set('editsDirty', ''); store.set('sentAt', new Date().toISOString());
@@ -576,7 +548,6 @@ addEventListener('online', () => pushEdits());
 // ---------- boot ----------
 fsMax.value = store.get('fsMax', 48); fsMin.value = store.get('fsMin', 24); mins.value = Math.round(limit / 60);
 applyFont(); build(); drawTimer(); paintMode(); paintPend(); syncNow(false);
-if (!store.get('pass', '') && !store.get('askedPass', '')){ store.set('askedPass', '1'); mode = 'pptx'; store.set('mode', 'pptx'); paintMode(); src.value = text; $('setSheet').hidden = false; }
 addEventListener('resize', () => { show(false); applyFont(); });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyFont);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
